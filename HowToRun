@@ -1,0 +1,61 @@
+How to run and configure the app on your machine
+All dependencies are already installed in .venv.
+a) Activate the virtual environment
+In PowerShell:
+cd "C:\Users\HariharanRajan\OneDrive - APG eCommerce\Desktop\RAG\Ranking model".\.venv\Scripts\Activate.ps1
+You should see (.venv) at the start of your prompt.
+b) Run migrations (already run once, safe to rerun)
+python manage.py migrate
+c) Create a superuser (admin account)
+Because this is interactive, you need to run this yourself:
+python manage.py createsuperuser
+Follow the prompts:
+Enter a username (e.g. admin)
+Email (optional)
+Password (twice)
+d) Start the development server
+python manage.py
+Then open a browser and go to:
+Admin: http://127.0.0.1:8000/admin/
+User login: http://127.0.0.1:8000/login/
+Main app (after login): http://127.0.0.1:8000/
+6. How to configure stages and tasks (admin flow)
+Go to http://127.0.0.1:8000/admin/ and login with your superuser.
+Under Core you’ll see:
+Stages
+Tasks
+Task rankings
+Configure stages:
+Click Stages → Add:
+Set Name for each stage (e.g. Stage 1, Stage 2, etc.).
+Set Description and optional Image URL.
+Set Order (1–10) to control how they appear.
+Once you’ve added 10 stages, they’ll show on the landing page as cards.
+Configure tasks for a stage:
+Click Tasks → Add:
+Choose Stage (e.g. Stage 1).
+Set Name and Description.
+Set Order (1..N).
+Set Is active = checked.
+Add as many tasks as you want per stage.
+To change the number of tasks available for ranking:
+Either add/remove tasks for that stage, or set is_active to False for tasks you want to hide.
+The app automatically uses the number of active tasks as N, so rankings go from 1..N.
+7. How the ranking behaves
+When a user opens a stage page:
+They see all active tasks for that stage.
+Each task has a dropdown with values 1..N (where N is the count of active tasks).
+When they submit:
+The system validates:
+Every task has a rank.
+No two tasks share the same rank.
+If validation fails, errors are shown above the table.
+If it passes, entries are saved to TaskRanking for that user + stage + task.
+If the user comes back later:
+Their previously saved ranks are loaded and pre-selected in the dropdowns.
+8. Next steps / customizations
+If you’d like, I can:
+Add a separate, friendlier “business admin” UI (not just Django admin) for managing stages and tasks.
+Add per-stage limits (e.g. max 10 tasks enforced).
+Add chart/summary views of rankings across users.
+If you tell me any extra rules (e.g. different ranking modes, multiple rounds per stage), I can extend the code accordingly.
