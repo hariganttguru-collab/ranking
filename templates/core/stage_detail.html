@@ -1,0 +1,77 @@
+{% extends "core/base.html" %}
+{% load core_extras %}
+
+{% block title %}{{ current_stage.name }} - Ranking{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3 border-end bg-white">
+        <h5 class="mt-3 mb-3 ps-2">Stages</h5>
+        <div class="list-group list-group-flush">
+            {% for stage in stages %}
+                <a href="{% url 'core:stage_detail' stage.id %}"
+                   class="list-group-item list-group-item-action {% if stage.id == current_stage.id %}active{% endif %}">
+                    {{ stage.name }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="p-4">
+            <h3 class="mb-3">{{ current_stage.name }}</h3>
+            {% if current_stage.description %}
+                <p class="text-muted">{{ current_stage.description }}</p>
+            {% endif %}
+
+            <h5 class="mt-4">Rank the tasks (1 – {{ max_rank }})</h5>
+            <p class="text-muted">Each rank value can be used only once.</p>
+
+            {% if errors %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <table class="table align-middle bg-white shadow-sm">
+                    <thead>
+                    <tr>
+                        <th style="width:5%">#</th>
+                        <th>Task</th>
+                        <th style="width:20%">Rank</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for task in tasks %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <strong>{{ task.name }}</strong><br>
+                                <small class="text-muted">{{ task.description }}</small>
+                            </td>
+                            <td>
+                                <select name="rank_{{ task.id }}" class="form-select" required>
+                                    <option value="">--</option>
+                                    {% for r in rank_choices %}
+                                        {% with existing_rank=existing_rankings|get_item:task.id %}
+                                            <option value="{{ r }}"{% if existing_rank == r %} selected{% endif %}>{{ r }}</option>
+                                        {% endwith %}
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <button type="submit" class="btn btn-primary">Save Rankings</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

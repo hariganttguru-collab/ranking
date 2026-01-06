@@ -1,0 +1,31 @@
+{% extends "core/base.html" %}
+
+{% block title %}Stages - Ranking App{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Select a Stage</h2>
+    <div class="row g-4">
+        {% for stage in stages %}
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    {% if stage.image_url %}
+                        <img src="{{ stage.image_url }}" class="card-img-top" alt="{{ stage.name }}">
+                    {% endif %}
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">{{ stage.name }}</h5>
+                        <p class="card-text text-muted">{{ stage.description|default:"" }}</p>
+                        <a href="{% url 'core:stage_detail' stage.id %}" class="btn btn-primary mt-auto">
+                            Go to Stage
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p>No stages configured yet. Please log into the admin to create stages.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+
