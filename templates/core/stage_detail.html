@@ -23,6 +23,25 @@
                 <p class="text-muted">{{ current_stage.description }}</p>
             {% endif %}
 
+            {% if score_data and score_data.score is not None %}
+                <div class="alert alert-info mt-3 mb-4">
+                    <h5 class="alert-heading">Your Score: {{ score_data.score }}/100</h5>
+                    <hr>
+                    <p class="mb-1">
+                        <strong>Exact Matches:</strong> {{ score_data.exact_matches }} out of {{ score_data.total_tasks }} tasks ({{ score_data.percentage }}%)
+                    </p>
+                    {% if score_data.average_distance %}
+                        <p class="mb-0">
+                            <strong>Average Distance from Correct Rank:</strong> {{ score_data.average_distance }}
+                        </p>
+                    {% endif %}
+                </div>
+            {% elif has_official_ranking and not existing_rankings %}
+                <div class="alert alert-warning mt-3 mb-4">
+                    <strong>Note:</strong> Official ranking is set. Submit your rankings to see your score.
+                </div>
+            {% endif %}
+
             <h5 class="mt-4">Rank the tasks (1 – {{ max_rank }})</h5>
             <p class="text-muted">Each rank value can be used only once.</p>
 
@@ -73,5 +92,61 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Prevent duplicate rank selections
+    document.addEventListener('DOMContentLoaded', function() {
+        const selects = document.querySelectorAll('select[name^="rank_"]');
+        
+        selects.forEach(function(select) {
+            select.addEventListener('change', function() {
+                const selectedValue = this.value;
+                if (!selectedValue) return;
+                
+                // Check all other selects
+                selects.forEach(function(otherSelect) {
+                    if (otherSelect !== select && otherSelect.value === selectedValue) {
+                        // Found duplicate, reset the other one
+                        otherSelect.value = '';
+                        otherSelect.classList.add('is-invalid');
+                        setTimeout(function() {
+                            otherSelect.classList.remove('is-invalid');
+                        }, 2000);
+                    }
+                });
+            });
+        });
+        
+        // Validate on form submit
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const selectedValues = [];
+                let hasDuplicates = false;
+                
+                selects.forEach(function(select) {
+                    const value = select.value;
+                    if (value) {
+                        if (selectedValues.includes(value)) {
+                            hasDuplicates = true;
+                            select.classList.add('is-invalid');
+                        } else {
+                            selectedValues.push(value);
+                            select.classList.remove('is-invalid');
+                        }
+                    }
+                });
+                
+                if (hasDuplicates) {
+                    e.preventDefault();
+                    alert('Error: Each rank value can only be used once. Please fix duplicate ranks.');
+                    return false;
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
 

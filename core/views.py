@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views import View
 
-from .models import Stage, Task, TaskRanking
+from .models import Stage, Task, TaskRanking, OfficialRanking
 
 
 class RegisterView(View):
@@ -78,6 +78,59 @@ class StageDetailView(LoginRequiredMixin, View):
     Shows the selected stage, left menu with all stages, and ranking form for tasks.
     """
 
+    def _calculate_score(self, user_rankings: dict, official_rankings: dict, total_tasks: int) -> dict:
+        """
+        Calculate score comparing user rankings to official rankings.
+        Returns a dict with score details.
+        """
+        if not official_rankings or not user_rankings:
+            return {
+                "score": None,
+                "exact_matches": 0,
+                "total_tasks": total_tasks,
+                "percentage": 0,
+                "average_distance": None,
+            }
+
+        exact_matches = 0
+        total_distance = 0
+        matched_tasks = 0
+
+        for task_id, user_rank in user_rankings.items():
+            if task_id in official_rankings:
+                official_rank = official_rankings[task_id]
+                if user_rank == official_rank:
+                    exact_matches += 1
+                total_distance += abs(user_rank - official_rank)
+                matched_tasks += 1
+
+        if matched_tasks == 0:
+            return {
+                "score": None,
+                "exact_matches": 0,
+                "total_tasks": total_tasks,
+                "percentage": 0,
+                "average_distance": None,
+            }
+
+        percentage = (exact_matches / matched_tasks) * 100
+        average_distance = total_distance / matched_tasks if matched_tasks > 0 else None
+
+        # Score calculation: base score from exact matches, with penalty for distance
+        # Max score is 100 (all exact matches)
+        # Penalty: subtract points based on average distance
+        base_score = percentage
+        distance_penalty = average_distance * 5 if average_distance else 0  # 5 points per rank off
+        final_score = max(0, base_score - distance_penalty)
+
+        return {
+            "score": round(final_score, 1),
+            "exact_matches": exact_matches,
+            "total_tasks": matched_tasks,
+            "percentage": round(percentage, 1),
+            "average_distance": round(average_distance, 2) if average_distance else None,
+        }
+
     def get(self, request: HttpRequest, pk: int) -> HttpResponse:
         stage = get_object_or_404(Stage, pk=pk)
         all_stages = Stage.objects.all()
@@ -89,6 +142,19 @@ class StageDetailView(LoginRequiredMixin, View):
             for ranking in TaskRanking.objects.filter(user=request.user, stage=stage)
         }
 
+        # Load official rankings (set by superuser)
+        official_rankings = {
+            ranking.task_id: ranking.rank
+            for ranking in OfficialRanking.objects.filter(stage=stage)
+        }
+
+        # Calculate score if user has rankings and official rankings exist
+        score_data = None
+        if existing_rankings and official_rankings:
+            score_data = self._calculate_score(
+                existing_rankings, official_rankings, tasks.count()
+            )
+
         max_rank = tasks.count()
         rank_choices = list(range(1, max_rank + 1))
 
@@ -99,6 +165,8 @@ class StageDetailView(LoginRequiredMixin, View):
             "existing_rankings": existing_rankings,
             "rank_choices": rank_choices,
             "max_rank": max_rank,
+            "score_data": score_data,
+            "has_official_ranking": bool(official_rankings),
         }
         return render(request, "core/stage_detail.html", context)
 

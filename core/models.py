@@ -33,6 +33,26 @@ class Task(models.Model):
         return f"{self.stage.name} - {self.name}"
 
 
+class OfficialRanking(models.Model):
+    """
+    Stores the official/correct ranking set by superuser/admin for each task in a stage.
+    This is the reference ranking that user rankings are compared against.
+    """
+
+    stage = models.ForeignKey(Stage, on_delete=models.CASCADE, related_name="official_rankings")
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name="official_rankings")
+    rank = models.PositiveIntegerField(help_text="Official rank for this task (1-N)")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("stage", "task")
+        ordering = ["stage", "rank"]
+
+    def __str__(self) -> str:
+        return f"Official: {self.stage.name} - {self.task.name} -> {self.rank}"
+
+
 class TaskRanking(models.Model):
     """
     Stores a ranking value for a single task in a given stage by a specific user.
