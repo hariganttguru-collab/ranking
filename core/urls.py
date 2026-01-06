@@ -6,6 +6,7 @@ from . import views
 app_name = "core"
 
 urlpatterns = [
+    path("register/", views.RegisterView.as_view(), name="register"),
     path("", login_required(views.LandingView.as_view()), name="landing"),
     path(
         "stages/<int:pk>/",
