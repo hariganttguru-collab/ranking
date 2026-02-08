@@ -1,0 +1,57 @@
+name: Deploy to Azure Web App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Remove virtual env if present (should not be in repo)
+        run: rm -rf .venv venv env antenv
+        continue-on-error: true
+
+      - name: Find project root
+        id: project
+        run: |
+          if [ -f requirements.txt ] && [ -f manage.py ]; then
+            echo "root=." >> $GITHUB_OUTPUT
+          elif [ -f ranking/requirements.txt ] && [ -f ranking/manage.py ]; then
+            echo "root=ranking" >> $GITHUB_OUTPUT
+          else
+            echo "Could not find requirements.txt and manage.py"
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd ${{ steps.project.outputs.root }}
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Collect static files
+        run: |
+          cd ${{ steps.project.outputs.root }}
+          python manage.py collectstatic --noinput
+        env:
+          DJANGO_SETTINGS_MODULE: ranking_site.settings
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ${{ steps.project.outputs.root }}
